@@ -1,0 +1,23 @@
+{
+  "name": "avitus-anketa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HR Telegram anketa tizimi - Avitus dorixonalar tarmog'i",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@avitus/shared-types && npm run build --workspace=@avitus/admin && npm run build --workspace=@avitus/backend",
+    "build:admin": "npm run build --workspace=@avitus/admin",
+    "build:backend": "npm run build --workspace=@avitus/backend",
+    "dev:backend": "npm run dev --workspace=@avitus/backend",
+    "dev:admin": "npm run dev --workspace=@avitus/admin",
+    "start": "npm run start --workspace=@avitus/backend",
+    "seed": "npm run seed --workspace=@avitus/backend",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

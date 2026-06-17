@@ -1,0 +1,62 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: avitus-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: avitus-anketa
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - avitus-net
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/avitus-anketa --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: avitus-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - '${APP_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      MONGODB_URI: mongodb://mongodb:27017/avitus-anketa
+      ADMIN_DIST_PATH: /app/apps/admin/dist
+      UPLOAD_DIR: /app/uploads
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
+      TELEGRAM_RETRY_ATTEMPTS: ${TELEGRAM_RETRY_ATTEMPTS:-5}
+      TELEGRAM_API_ROOT: ${TELEGRAM_API_ROOT:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin123}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-10}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - avitus-net
+
+networks:
+  avitus-net:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  uploads_data:
