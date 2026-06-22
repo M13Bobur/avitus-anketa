@@ -50,7 +50,7 @@ avitus-anketa/
 ### 1. Talablar
 
 - Node.js 22+
-- MongoDB 7+
+- MongoDB 4.4+ (Docker: `mongo:4.4` — AVX yo'q eski VPS lar uchun)
 - Telegram Bot Token ([@BotFather](https://t.me/BotFather))
 
 ### 2. O'rnatish

@@ -1,8 +1,10 @@
 services:
   mongodb:
-    image: mongo:7
+    # MongoDB 5.0+ AVX talab qiladi — eski VPS CPU larda 4.4 ishlatiladi
+    image: mongo:4.4
     container_name: avitus-mongodb
     restart: unless-stopped
+    command: ['--wiredTigerCacheSizeGB', '0.5']
     environment:
       MONGO_INITDB_DATABASE: avitus-anketa
     volumes:
@@ -10,11 +12,11 @@ services:
     networks:
       - avitus-net
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/avitus-anketa --quiet
-      interval: 10s
+      test: ['CMD-SHELL', "mongo --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'"]
+      interval: 5s
       timeout: 5s
-      retries: 8
-      start_period: 20s
+      retries: 12
+      start_period: 60s
 
   backend:
     build:
@@ -48,8 +50,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     networks:
       - avitus-net
 
