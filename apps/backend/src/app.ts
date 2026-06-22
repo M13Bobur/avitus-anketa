@@ -1,14 +1,13 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
 // @ts-expect-error no types
 import xss from 'xss-clean';
 import swaggerUi from 'swagger-ui-express';
 import path from 'path';
 import fs from 'fs';
-import { config } from './config';
+import { config, isProduction } from './config';
 import { swaggerSpec } from './config/swagger';
 import { logger } from './config/logger';
 import { requestLogger } from './presentation/middleware/logger.middleware';
@@ -19,19 +18,26 @@ export function createApp(): Application {
   const app = express();
 
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: isProduction
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'blob:', 'data:'],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+          },
+        }
+      : false,
     crossOriginEmbedderPolicy: false,
   }));
 
   app.use(cors({
     origin: config.corsOrigins,
     credentials: true,
-  }));
-
-  app.use(rateLimit({
-    windowMs: config.rateLimit.windowMs,
-    max: config.rateLimit.max,
-    message: { success: false, message: 'Too many requests' },
   }));
 
   app.use(express.json({ limit: '10mb' }));
@@ -42,7 +48,10 @@ export function createApp(): Application {
 
   app.use(requestLogger);
 
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  if (!isProduction || process.env.ENABLE_SWAGGER === 'true') {
+    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  }
+
   app.use('/api', apiRoutes);
 
   const adminDistPath = config.adminDistPath;

@@ -21,7 +21,11 @@ export const loginSchema = z.object({
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Joriy parolni kiriting'),
-    newPassword: z.string().min(6, 'Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak'),
+    newPassword: z
+      .string()
+      .min(8, 'Yangi parol kamida 8 ta belgidan iborat bo\'lishi kerak')
+      .regex(/[A-Za-z]/, 'Parol kamida bitta harf bo\'lishi kerak')
+      .regex(/[0-9]/, 'Parol kamida bitta raqam bo\'lishi kerak'),
     confirmPassword: z.string().min(1, 'Parolni tasdiqlang'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
@@ -33,13 +37,22 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   });
 
+export const changeUsernameSchema = z.object({
+  newUsername: z
+    .string()
+    .min(3, 'Login kamida 3 ta belgidan iborat bo\'lishi kerak')
+    .max(50, 'Login 50 ta belgidan oshmasligi kerak')
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Faqat harf, raqam, nuqta, tire va pastki chiziq'),
+  currentPassword: z.string().min(1, 'Parolni kiriting'),
+});
+
 export const updateApplicationStatusSchema = z.object({
   status: z.nativeEnum(ApplicationStatus),
-  adminComment: z.string().optional(),
+  adminComment: z.string().max(2000, 'Izoh 2000 belgidan oshmasligi kerak').optional(),
 });
 
 export const applicationFiltersSchema = z.object({
-  search: z.string().optional(),
+  search: z.string().max(100, 'Qidiruv 100 belgidan oshmasligi kerak').optional(),
   position: z.nativeEnum(Position).optional(),
   branch: z.nativeEnum(Branch).optional(),
   gender: z.nativeEnum(Gender).optional(),
@@ -95,5 +108,6 @@ export const surveyValidators: Record<string, z.ZodSchema> = {
 
 export type LoginDto = z.infer<typeof loginSchema>;
 export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
+export type ChangeUsernameDto = z.infer<typeof changeUsernameSchema>;
 export type UpdateApplicationStatusDto = z.infer<typeof updateApplicationStatusSchema>;
 export type ApplicationFiltersDto = z.infer<typeof applicationFiltersSchema>;

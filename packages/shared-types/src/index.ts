@@ -249,6 +249,11 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+export interface ChangeUsernameRequest {
+  newUsername: string;
+  currentPassword: string;
+}
+
 export interface UpdateApplicationStatusRequest {
   status: ApplicationStatus;
   adminComment?: string;

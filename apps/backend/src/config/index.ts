@@ -19,6 +19,8 @@ function loadEnv(): void {
 
 loadEnv();
 
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
 function requireEnv(key: string, defaultValue?: string): string {
   const value = process.env[key] ?? defaultValue;
   if (!value) {
@@ -28,13 +30,15 @@ function requireEnv(key: string, defaultValue?: string): string {
 }
 
 export const config = {
-  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeEnv,
   port: parseInt(process.env.PORT ?? '3000', 10),
   host: process.env.HOST ?? '0.0.0.0',
   mongodbUri: requireEnv('MONGODB_URI', 'mongodb://localhost:27017/avitus-anketa'),
   jwt: {
-    secret: requireEnv('JWT_SECRET', 'dev-secret-change-me'),
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+    secret: nodeEnv === 'production'
+      ? requireEnv('JWT_SECRET')
+      : requireEnv('JWT_SECRET', 'dev-secret-change-me'),
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '24h',
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
@@ -52,10 +56,6 @@ export const config = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
-  rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '900000', 10),
-    max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),
-  },
   upload: {
     dir: process.env.UPLOAD_DIR && path.isAbsolute(process.env.UPLOAD_DIR)
       ? process.env.UPLOAD_DIR
@@ -68,4 +68,4 @@ export const config = {
   },
 } as const;
 
-export const isProduction = config.nodeEnv === 'production';
+export const isProduction = nodeEnv === 'production';

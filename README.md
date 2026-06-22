@@ -157,7 +157,7 @@ Telegram bot **FSM (Finite State Machine)** orqali 28 bosqichli anketa o'tkazadi
 
 ## Xavfsizlik
 
-- Helmet, CORS, Rate Limiting
+- Helmet, CORS
 - JWT Authentication + RBAC
 - bcrypt password hashing
 - MongoDB sanitization

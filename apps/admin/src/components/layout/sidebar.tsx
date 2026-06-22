@@ -19,7 +19,8 @@ import { APPLICATIONS_SIDEBAR, APPLICATIONS_ALL_SLUG } from '@avitus/shared-type
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { ChangePasswordModal } from '@/components/auth/change-password-modal';
+import { AccountSettingsModal } from '@/components/auth/account-settings-modal';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 const statusIcons = {
   barchasi: LayoutList,
@@ -33,7 +34,7 @@ const statusIcons = {
 export function Sidebar() {
   const pathname = usePathname();
   const { admin, logout } = useAuth();
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
 
   const isMenuActive = (slug: string) => {
     const href = `/applications/${slug}`;
@@ -46,9 +47,14 @@ export function Sidebar() {
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-card">
-        <div className="shrink-0 border-b bg-gradient-to-br from-primary/5 to-transparent p-6">
-          <h1 className="text-lg font-bold text-primary">Avitus Anketa</h1>
-          <p className="text-sm text-muted-foreground">HR Admin Panel</p>
+        <div className="shrink-0 border-b bg-gradient-to-br from-primary/5 to-transparent p-6 dark:from-primary/10">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-bold text-primary">Avitus Anketa</h1>
+              <p className="text-sm text-muted-foreground">HR Admin Panel</p>
+            </div>
+            <ThemeToggle />
+          </div>
         </div>
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-4">
@@ -109,8 +115,8 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setPasswordModalOpen(true)}
-              title="Parolni o'zgartirish"
+              onClick={() => setAccountModalOpen(true)}
+              title="Login va parolni o'zgartirish"
               className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-primary/10 hover:text-primary"
             >
               <KeyRound className="h-4 w-4" />
@@ -129,9 +135,9 @@ export function Sidebar() {
         </div>
       </aside>
 
-      <ChangePasswordModal
-        open={passwordModalOpen}
-        onOpenChange={setPasswordModalOpen}
+      <AccountSettingsModal
+        open={accountModalOpen}
+        onOpenChange={setAccountModalOpen}
         username={admin?.username}
       />
     </>

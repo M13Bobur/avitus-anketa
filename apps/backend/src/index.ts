@@ -1,14 +1,16 @@
 import fs from 'fs';
 import path from 'path';
-import { config } from './config';
+import { config, isProduction } from './config';
 import { logger } from './config/logger';
 import { connectDatabase } from './infrastructure/database/connection';
 import { migrateApplicationStatuses } from './infrastructure/database/migrate-status';
 import { createApp } from './app';
 import { createBot, startBot } from './bot';
 import { authService } from './application/services/auth.service';
+import { assertProductionSecurity } from './domain/security';
 
 async function bootstrap() {
+  assertProductionSecurity();
   const logsDir = path.resolve(__dirname, '..', 'logs');
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
@@ -31,7 +33,9 @@ async function bootstrap() {
   const app = createApp();
   const server = app.listen(config.port, config.host, () => {
     logger.info(`Server running on http://${config.host}:${config.port}`);
-    logger.info(`Swagger docs: http://${config.host}:${config.port}/api/docs`);
+    if (!isProduction || process.env.ENABLE_SWAGGER === 'true') {
+      logger.info(`Swagger docs: http://${config.host}:${config.port}/api/docs`);
+    }
   });
 
   const bot = createBot();

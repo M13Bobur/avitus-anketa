@@ -21,25 +21,25 @@ export default function DashboardPage() {
       title: 'Jami arizalar',
       value: data?.totalApplications ?? 0,
       icon: FileText,
-      color: 'text-blue-600',
+      color: 'text-blue-600 dark:text-blue-400',
     },
     {
       title: 'Bugungi arizalar',
       value: data?.todayApplications ?? 0,
       icon: Calendar,
-      color: 'text-green-600',
+      color: 'text-green-600 dark:text-green-400',
     },
     {
       title: 'Tugallangan',
       value: data?.completedApplications ?? 0,
       icon: CheckCircle,
-      color: 'text-emerald-600',
+      color: 'text-emerald-600 dark:text-emerald-400',
     },
     {
       title: 'Tugallanmagan',
       value: data?.incompleteApplications ?? 0,
       icon: Clock,
-      color: 'text-orange-600',
+      color: 'text-orange-600 dark:text-orange-400',
     },
   ];
 

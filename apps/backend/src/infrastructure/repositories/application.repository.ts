@@ -5,6 +5,7 @@ import {
   SurveyAnswers,
   LEGACY_APPLICATION_STATUS,
 } from '@avitus/shared-types';
+import { escapeRegex } from '../../domain/security';
 import {
   ApplicationModel,
   IApplicationDocument,
@@ -123,9 +124,10 @@ export class ApplicationRepository implements IApplicationRepository {
       if (filters.dateTo) query.submittedAt.$lte = new Date(filters.dateTo);
     }
     if (filters.search) {
+      const safeSearch = escapeRegex(filters.search.trim());
       query.$or = [
-        { 'answers.fullName': { $regex: filters.search, $options: 'i' } },
-        { 'answers.phone': { $regex: filters.search, $options: 'i' } },
+        { 'answers.fullName': { $regex: safeSearch, $options: 'i' } },
+        { 'answers.phone': { $regex: safeSearch, $options: 'i' } },
       ];
     }
 

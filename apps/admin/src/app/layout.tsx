@@ -10,9 +10,14 @@ export const metadata: Metadata = {
   description: 'HR Telegram anketa tizimi admin paneli',
 };
 
+const themeScript = `(function(){try{var t=localStorage.getItem('avitus-theme');if(t==='dark'){document.documentElement.classList.add('dark')}}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uz">
+    <html lang="uz" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>

@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-export function authMiddleware(req: Request, _res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, _res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return next(new UnauthorizedError('No token provided'));
@@ -19,7 +19,8 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
 
   const token = authHeader.slice(7);
   try {
-    req.admin = authService.verifyToken(token);
+    const payload = authService.verifyToken(token);
+    req.admin = await authService.resolveAuthenticatedAdmin(payload);
     next();
   } catch (error) {
     next(error);

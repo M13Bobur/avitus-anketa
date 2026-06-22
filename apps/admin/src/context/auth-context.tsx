@@ -14,11 +14,24 @@ interface AuthContextType {
   admin: AdminUser | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
+  updateSession: (token: string, admin: AdminUser) => void;
   logout: () => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function parseStoredAdmin(raw: string): AdminUser | null {
+  try {
+    const parsed = JSON.parse(raw) as AdminUser;
+    if (parsed?.sub && parsed?.username && parsed?.role) {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
@@ -26,13 +39,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedAdmin = localStorage.getItem('admin');
-    if (storedToken && storedAdmin) {
-      setToken(storedToken);
-      setAdmin(JSON.parse(storedAdmin));
+    async function restoreSession() {
+      const storedToken = localStorage.getItem('token');
+      const storedAdmin = localStorage.getItem('admin');
+
+      if (!storedToken || !storedAdmin) {
+        setIsLoading(false);
+        return;
+      }
+
+      const cachedAdmin = parseStoredAdmin(storedAdmin);
+      if (!cachedAdmin) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('admin');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await api.get<ApiResponse<AdminUser>>('/auth/me');
+        const liveAdmin: AdminUser = {
+          sub: data.data.sub,
+          username: data.data.username,
+          role: data.data.role,
+        };
+        localStorage.setItem('admin', JSON.stringify(liveAdmin));
+        setToken(storedToken);
+        setAdmin(liveAdmin);
+      } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('admin');
+      } finally {
+        setIsLoading(false);
+      }
     }
-    setIsLoading(false);
+
+    restoreSession();
   }, []);
 
   const login = async (username: string, password: string) => {
@@ -52,6 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAdmin(adminUser);
   };
 
+  const updateSession = (newToken: string, adminUser: AdminUser) => {
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('admin', JSON.stringify(adminUser));
+    setToken(newToken);
+    setAdmin(adminUser);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('admin');
@@ -61,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ admin, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ admin, token, login, updateSession, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

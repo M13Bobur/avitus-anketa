@@ -50,7 +50,7 @@ WORKDIR /app/apps/backend
 EXPOSE 3000
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=5 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/api/docs', (r) => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]

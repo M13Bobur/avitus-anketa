@@ -5,6 +5,7 @@ export interface IAdminDocument extends Document {
   username: string;
   passwordHash: string;
   role: AdminRole;
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,6 +19,7 @@ const adminSchema = new Schema<IAdminDocument>(
       enum: Object.values(AdminRole),
       default: AdminRole.ADMIN,
     },
+    tokenVersion: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

@@ -2,51 +2,37 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { authService } from '../../application/services/auth.service';
 import { applicationService } from '../../application/services/survey.service';
 import { authMiddleware, requireMinRole } from '../middleware/auth.middleware';
+import { loginRateLimiter } from '../middleware/login-rate-limit.middleware';
+import { validateObjectIdParam } from '../middleware/object-id.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
 import {
   loginSchema,
   changePasswordSchema,
+  changeUsernameSchema,
   updateApplicationStatusSchema,
   applicationFiltersSchema,
 } from '../../application/dto/validation.schemas';
 import { AdminRole } from '@avitus/shared-types';
+import { logger } from '../../config/logger';
 import path from 'path';
 import fs from 'fs';
 import { config } from '../../config';
 
 const router = Router();
 
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     tags: [Auth]
- *     summary: Admin login
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [username, password]
- *             properties:
- *               username:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *       401:
- *         description: Invalid credentials
- */
+router.get('/health', (_req: Request, res: Response) => {
+  res.json({ success: true, status: 'ok' });
+});
+
 router.post(
   '/auth/login',
+  loginRateLimiter,
   validateBody(loginSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { username, password } = req.body;
       const { token, admin } = await authService.login(username, password);
+      logger.info('Admin login success', { username: admin.username, ip: req.ip });
       res.json({
         success: true,
         data: {
@@ -59,6 +45,7 @@ router.post(
         },
       });
     } catch (error) {
+      logger.warn('Admin login failed', { username: req.body?.username, ip: req.ip });
       next(error);
     }
   },
@@ -93,8 +80,53 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      await authService.changePassword(req.admin!.sub, currentPassword, newPassword);
-      res.json({ success: true, message: 'Parol muvaffaqiyatli o\'zgartirildi' });
+      const { token, admin } = await authService.changePassword(
+        req.admin!.sub,
+        currentPassword,
+        newPassword,
+      );
+      res.json({
+        success: true,
+        message: 'Parol muvaffaqiyatli o\'zgartirildi',
+        data: {
+          token,
+          admin: {
+            _id: admin._id.toString(),
+            username: admin.username,
+            role: admin.role,
+          },
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.patch(
+  '/auth/change-username',
+  authMiddleware,
+  validateBody(changeUsernameSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { currentPassword, newUsername } = req.body;
+      const { token, admin } = await authService.changeUsername(
+        req.admin!.sub,
+        currentPassword,
+        newUsername,
+      );
+      res.json({
+        success: true,
+        message: 'Login muvaffaqiyatli o\'zgartirildi',
+        data: {
+          token,
+          admin: {
+            _id: admin._id.toString(),
+            username: admin.username,
+            role: admin.role,
+          },
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -161,6 +193,7 @@ router.get(
   '/applications/:id',
   authMiddleware,
   requireMinRole(AdminRole.VIEWER),
+  validateObjectIdParam('id'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const app = await applicationService.getApplicationById(String(req.params.id));
@@ -184,6 +217,7 @@ router.patch(
   '/applications/:id/status',
   authMiddleware,
   requireMinRole(AdminRole.ADMIN),
+  validateObjectIdParam('id'),
   validateBody(updateApplicationStatusSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -216,6 +250,9 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => {
     try {
       const filename = path.basename(String(req.params.filename));
+      if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+        return res.status(404).json({ success: false, message: 'File not found' });
+      }
       const filePath = path.join(config.upload.dir, filename);
 
       if (!fs.existsSync(filePath)) {

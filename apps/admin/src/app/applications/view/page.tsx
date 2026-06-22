@@ -5,8 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api, ApiResponse } from '@/lib/api';
-import { ApplicationStatus, getStatusSlug, IApplication, STEP_LABELS, SurveyStep } from '@avitus/shared-types';
+import { ApplicationStatus, getStatusSlug, IApplication, STEP_LABELS, SurveyStep, AdminRole } from '@avitus/shared-types';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { useAuth } from '@/context/auth-context';
+import { hasMinRole } from '@/lib/admin-role';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +28,8 @@ function ApplicationDetailContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id') ?? '';
   const queryClient = useQueryClient();
+  const { admin } = useAuth();
+  const canEditStatus = admin ? hasMinRole(admin.role, AdminRole.ADMIN) : false;
 
   const [status, setStatus] = useState<ApplicationStatus>(ApplicationStatus.NEW);
   const [comment, setComment] = useState('');
@@ -155,6 +159,7 @@ function ApplicationDetailContent() {
             </Card>
           )}
 
+          {canEditStatus && (
           <Card className="no-print">
             <CardHeader>
               <CardTitle>Holat boshqaruvi</CardTitle>
@@ -175,6 +180,7 @@ function ApplicationDetailContent() {
                 placeholder="Izoh qo'shing..."
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
+                maxLength={2000}
               />
 
               <Button
@@ -186,6 +192,7 @@ function ApplicationDetailContent() {
               </Button>
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
     </div>

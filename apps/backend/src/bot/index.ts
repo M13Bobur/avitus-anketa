@@ -1,5 +1,6 @@
 import { Context, Telegraf } from 'telegraf';
 import { Update, Message } from 'telegraf/types';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config';
@@ -26,6 +27,26 @@ import {
 } from './telegram-client';
 
 type BotContext = Context<Update>;
+
+const ALLOWED_RESUME_EXT = new Set(['.pdf', '.doc', '.docx']);
+const ALLOWED_PHOTO_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
+function validateUploadSize(bytes: number) {
+  const maxBytes = config.upload.maxFileSizeMb * 1024 * 1024;
+  if (bytes > maxBytes) {
+    throw new ValidationError(
+      `Fayl hajmi ${config.upload.maxFileSizeMb} MB dan oshmasligi kerak`,
+    );
+  }
+}
+
+function normalizeExtension(ext: string, allowed: Set<string>): string {
+  const lower = ext.toLowerCase();
+  if (!allowed.has(lower)) {
+    throw new ValidationError('Ruxsat etilmagan fayl turi');
+  }
+  return lower;
+}
 
 async function safeReply(
   ctx: BotContext,
@@ -56,7 +77,13 @@ async function downloadTelegramFile(
   ctx: BotContext,
   fileId: string,
   prefix: string,
+  allowedExt: Set<string>,
+  fileSize?: number,
 ): Promise<string> {
+  if (fileSize) {
+    validateUploadSize(fileSize);
+  }
+
   await ensureUploadDir();
   const fileLink = await withTelegramRetry(
     () => ctx.telegram.getFileLink(fileId),
@@ -67,8 +94,10 @@ async function downloadTelegramFile(
     'downloadFile',
   );
   const buffer = Buffer.from(await response.arrayBuffer());
-  const ext = path.extname(fileLink.pathname) || '.bin';
-  const filename = `${prefix}_${ctx.from!.id}_${Date.now()}${ext}`;
+  validateUploadSize(buffer.length);
+
+  const ext = normalizeExtension(path.extname(fileLink.pathname) || '.bin', allowedExt);
+  const filename = `${prefix}_${crypto.randomBytes(16).toString('hex')}${ext}`;
   const filePath = path.join(config.upload.dir, filename);
   fs.writeFileSync(filePath, buffer);
   return filename;
@@ -169,7 +198,13 @@ export function setupBot(bot: Telegraf<BotContext>) {
 
     try {
       const doc = (ctx.message as Message.DocumentMessage).document;
-      const filename = await downloadTelegramFile(ctx, doc.file_id, 'resume');
+      const filename = await downloadTelegramFile(
+        ctx,
+        doc.file_id,
+        'resume',
+        ALLOWED_RESUME_EXT,
+        doc.file_size,
+      );
       const nextStep = await surveyService.saveResumeFile(ctx.from!.id, filename);
       await safeReply(ctx, '✅ Fayl qabul qilindi!');
       await sendStep(ctx, nextStep);
@@ -186,7 +221,13 @@ export function setupBot(bot: Telegraf<BotContext>) {
     try {
       const photos = (ctx.message as Message.PhotoMessage).photo;
       const largest = photos[photos.length - 1];
-      const filename = await downloadTelegramFile(ctx, largest.file_id, 'photo');
+      const filename = await downloadTelegramFile(
+        ctx,
+        largest.file_id,
+        'photo',
+        ALLOWED_PHOTO_EXT,
+        largest.file_size,
+      );
       const nextStep = await surveyService.savePhotoFile(ctx.from!.id, filename);
       await safeReply(ctx, '✅ Fotosurat qabul qilindi!');
       await sendStep(ctx, nextStep);
