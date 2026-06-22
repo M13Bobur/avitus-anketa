@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# shellcheck source=check-port.sh
+source "$ROOT_DIR/scripts/check-port.sh"
+
 ENV_FILE=".env"
 EXAMPLE=".env.docker.example"
 
@@ -36,6 +39,27 @@ if grep -q 'change-this-to-a-long-random-secret-key' "$ENV_FILE"; then
   echo ">>> JWT_SECRET avtomatik yaratildi"
 fi
 
+# Port tekshiruvi — band bo'lsa bo'sh port tanlash
+APP_PORT="$(grep -E '^APP_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo 3000)"
+APP_PORT="${APP_PORT:-3000}"
+
+if port_in_use "$APP_PORT"; then
+  echo ">>> OGOHLANTIRISH: port ${APP_PORT} band!"
+  who_uses_port "$APP_PORT"
+  FREE_PORT="$(find_free_port "$((APP_PORT + 1))" 3010 || true)"
+  if [[ -n "$FREE_PORT" ]]; then
+    sed -i "s|^APP_PORT=.*|APP_PORT=${FREE_PORT}|" "$ENV_FILE"
+    sed -i "s|^CORS_ORIGIN=.*|CORS_ORIGIN=http://${SERVER_IP}:${FREE_PORT}|" "$ENV_FILE"
+    echo ">>> APP_PORT avtomatik ${FREE_PORT} ga o'zgartirildi"
+    echo ">>> CORS_ORIGIN = http://${SERVER_IP}:${FREE_PORT}"
+    APP_PORT="$FREE_PORT"
+  else
+    echo ">>> XATO: 3000-3010 oralig'ida bo'sh port topilmadi"
+    echo ">>> Band portni to'xtating: sudo ss -tlnp | grep :${APP_PORT}"
+    exit 1
+  fi
+fi
+
 # Majburiy maydonlarni tekshirish
 ERRORS=0
 
@@ -55,5 +79,5 @@ if [[ "$ERRORS" -ne 0 ]]; then
   exit 1
 fi
 
-echo ">>> .env tayyor"
+echo ">>> .env tayyor (port ${APP_PORT} bo'sh)"
 grep -E '^(APP_PORT|CORS_ORIGIN|SEED_ADMIN_USERNAME)=' "$ENV_FILE" || true

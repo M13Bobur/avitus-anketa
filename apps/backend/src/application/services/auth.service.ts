@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../../config';
 import { adminRepository } from '../../infrastructure/repositories/admin.repository';
-import { UnauthorizedError } from '../../domain/errors/app.error';
+import { UnauthorizedError, NotFoundError, ValidationError } from '../../domain/errors/app.error';
 import { AdminRole } from '@avitus/shared-types';
 import { IAdminDocument } from '../../infrastructure/database/models/admin.model';
 
@@ -55,6 +55,25 @@ export class AuthService {
 
     const passwordHash = await this.hashPassword(password);
     await adminRepository.create(username, passwordHash, AdminRole.SUPER_ADMIN);
+  }
+
+  async changePassword(
+    adminId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const admin = await adminRepository.findById(adminId);
+    if (!admin) {
+      throw new NotFoundError('Admin topilmadi');
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, admin.passwordHash);
+    if (!isValid) {
+      throw new ValidationError('Joriy parol noto\'g\'ri');
+    }
+
+    const passwordHash = await this.hashPassword(newPassword);
+    await adminRepository.updatePassword(adminId, passwordHash);
   }
 }
 

@@ -6,6 +6,7 @@ export interface IAdminRepository {
   findByUsername(username: string): Promise<IAdminDocument | null>;
   findById(id: string): Promise<IAdminDocument | null>;
   create(username: string, passwordHash: string, role: AdminRole): Promise<IAdminDocument>;
+  updatePassword(id: string, passwordHash: string): Promise<void>;
   exists(): Promise<boolean>;
 }
 
@@ -24,6 +25,10 @@ export class AdminRepository implements IAdminRepository {
     role: AdminRole,
   ): Promise<IAdminDocument> {
     return AdminModel.create({ username, passwordHash, role });
+  }
+
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await AdminModel.findByIdAndUpdate(id, { passwordHash });
   }
 
   async exists(): Promise<boolean> {

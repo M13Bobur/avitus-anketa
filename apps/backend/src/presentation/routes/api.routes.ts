@@ -5,6 +5,7 @@ import { authMiddleware, requireMinRole } from '../middleware/auth.middleware';
 import { validateBody, validateQuery } from '../middleware/validation.middleware';
 import {
   loginSchema,
+  changePasswordSchema,
   updateApplicationStatusSchema,
   applicationFiltersSchema,
 } from '../../application/dto/validation.schemas';
@@ -75,6 +76,30 @@ router.post(
 router.get('/auth/me', authMiddleware, (req: Request, res: Response) => {
   res.json({ success: true, data: req.admin });
 });
+
+/**
+ * @swagger
+ * /api/auth/change-password:
+ *   patch:
+ *     tags: [Auth]
+ *     summary: Change current admin password
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch(
+  '/auth/change-password',
+  authMiddleware,
+  validateBody(changePasswordSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      await authService.changePassword(req.admin!.sub, currentPassword, newPassword);
+      res.json({ success: true, message: 'Parol muvaffaqiyatli o\'zgartirildi' });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * @swagger

@@ -11,6 +11,7 @@ import {
   UserCheck,
   UserX,
   LayoutList,
+  Settings,
 } from 'lucide-react';
 import { APPLICATIONS_SIDEBAR, APPLICATIONS_ALL_SLUG } from '@avitus/shared-types';
 import { cn } from '@/lib/utils';
@@ -57,6 +58,19 @@ export function Sidebar() {
         >
           <LayoutDashboard className="h-4 w-4" />
           Dashboard
+        </Link>
+
+        <Link
+          href="/settings"
+          className={cn(
+            'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+            pathname.startsWith('/settings')
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+          )}
+        >
+          <Settings className="h-4 w-4" />
+          Sozlamalar
         </Link>
 
         <div className="pt-4">

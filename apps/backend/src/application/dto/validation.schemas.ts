@@ -18,6 +18,21 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password required'),
 });
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Joriy parolni kiriting'),
+    newPassword: z.string().min(6, 'Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak'),
+    confirmPassword: z.string().min(1, 'Parolni tasdiqlang'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Yangi parollar mos kelmadi',
+    path: ['confirmPassword'],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'Yangi parol joriy paroldan farqli bo\'lishi kerak',
+    path: ['newPassword'],
+  });
+
 export const updateApplicationStatusSchema = z.object({
   status: z.nativeEnum(ApplicationStatus),
   adminComment: z.string().optional(),
@@ -79,5 +94,6 @@ export const surveyValidators: Record<string, z.ZodSchema> = {
 };
 
 export type LoginDto = z.infer<typeof loginSchema>;
+export type ChangePasswordDto = z.infer<typeof changePasswordSchema>;
 export type UpdateApplicationStatusDto = z.infer<typeof updateApplicationStatusSchema>;
 export type ApplicationFiltersDto = z.infer<typeof applicationFiltersSchema>;

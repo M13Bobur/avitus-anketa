@@ -243,6 +243,12 @@ export interface LoginResponse {
   admin: Omit<IAdmin, 'createdAt' | 'updatedAt'> & { createdAt?: string; updatedAt?: string };
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export interface UpdateApplicationStatusRequest {
   status: ApplicationStatus;
   adminComment?: string;

@@ -46,7 +46,23 @@ if docker compose up -d --force-recreate --remove-orphans --wait 2>/dev/null; th
   echo ">>> Barcha servislar healthy"
 else
   echo ">>> --wait qo'llab-quvvatlanmaydi, qo'lda kutilmoqda..."
-  docker compose up -d --force-recreate --remove-orphans
+  UP_OUTPUT="$(docker compose up -d --force-recreate --remove-orphans 2>&1)" || {
+    echo "$UP_OUTPUT"
+    if echo "$UP_OUTPUT" | grep -qi 'address already in use'; then
+      APP_PORT="$(grep -E '^APP_PORT=' .env 2>/dev/null | cut -d= -f2 || echo 3000)"
+      echo ""
+      echo ">>> XATO: Port ${APP_PORT} band — backend ishga tushmaydi, bot ham ishlamaydi"
+      echo ">>> Kim ishlatyapti:"
+      bash scripts/check-port.sh "$APP_PORT" || true
+      echo ""
+      echo ">>> Tez yechim — boshqa port:"
+      echo "    bash scripts/setup-env.sh && ./scripts/docker-deploy.sh"
+      echo ""
+      echo ">>> Yoki band processni to'xtating:"
+      echo "    sudo ss -tlnp | grep :${APP_PORT}"
+    fi
+    exit 1
+  }
 
   for i in $(seq 1 90); do
     MONGO_OK=$(docker inspect avitus-mongodb --format '{{.State.Health.Status}}' 2>/dev/null || echo "none")
