@@ -26,9 +26,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
-      <main className="ml-64 min-h-screen p-8">{children}</main>
+    <div className="min-h-screen bg-background print:min-h-0 print:bg-white">
+      <div className="no-print">
+        <Sidebar />
+      </div>
+      <main className="ml-64 min-h-screen p-8 print:ml-0 print:min-h-0 print:bg-white print:p-0">
+        {children}
+      </main>
     </div>
   );
 }
