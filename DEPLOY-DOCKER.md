@@ -106,31 +106,22 @@ cd avitus-anketa
 
 ```bash
 cp .env.docker.example .env
-nano .env
+nano .env   # faqat TELEGRAM_BOT_TOKEN ni kiriting
 ```
 
-**Majburiy** maydonlar:
-
-| O'zgaruvchi | Misol | Izoh |
-|-------------|-------|------|
-| `JWT_SECRET` | `xK9mP2vL8nQ4wR7tY1uI0oP3aS6dF5gH` | Uzun tasodifiy matn (production!) |
-| `TELEGRAM_BOT_TOKEN` | `123456:ABC...` | [@BotFather](https://t.me/BotFather) dan |
-| `CORS_ORIGIN` | `http://203.0.113.10:3000` | Server IP yoki domen |
-| `APP_PORT` | `3000` | Tashqi port |
-
-Server IP:
+Yoki avtomatik (IP va JWT_SECRET o'zi to'ldiriladi):
 
 ```bash
-hostname -I | awk '{print $1}'
+bash scripts/setup-env.sh
 ```
 
-Production uchun parolni ham o'zgartiring:
+**Majburiy** — faqat `TELEGRAM_BOT_TOKEN` (qolganlari skript to'ldiradi):
 
-```env
-SEED_ADMIN_PASSWORD=kuchli-parol-bu-yerda
-```
-
-> **Eslatma:** Docker rejimida `MONGODB_URI` ni `.env` ga yozish shart emas — `docker-compose.yml` ichida avtomatik sozlanadi.
+| O'zgaruvchi | Izoh |
+|-------------|------|
+| `TELEGRAM_BOT_TOKEN` | [@BotFather](https://t.me/BotFather) dan |
+| `JWT_SECRET` | `setup-env.sh` avtomatik yaratadi |
+| `CORS_ORIGIN` | `setup-env.sh` server IP ni qo'yadi |
 
 ---
 
@@ -150,18 +141,21 @@ Agar Nginx + HTTPS ishlatsangiz, faqat 80/443 oching, 3000 ni yoping.
 ## 6-qadam: Deploy
 
 ```bash
-chmod +x scripts/docker-deploy.sh
+chmod +x scripts/*.sh
 ./scripts/docker-deploy.sh
 ```
 
-Yoki qo'lda:
+To'liq qayta build:
 
 ```bash
-docker compose build
-docker compose up -d
+./scripts/docker-deploy.sh --no-cache
 ```
 
-Birinchi build 5–15 daqiqa davom etishi mumkin (internet tezligiga qarab).
+Tekshirish:
+
+```bash
+./scripts/docker-status.sh
+```
 
 ---
 

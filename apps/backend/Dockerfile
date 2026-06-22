@@ -27,6 +27,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV NODE_OPTIONS="--max-old-space-size=384"
 
 RUN apk add --no-cache tini
 
@@ -48,7 +49,7 @@ WORKDIR /app/apps/backend
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=5 \
   CMD node -e "require('http').get('http://127.0.0.1:3000/api/docs', (r) => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]

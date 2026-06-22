@@ -1,10 +1,10 @@
 services:
   mongodb:
-    # MongoDB 5.0+ AVX talab qiladi — eski VPS CPU larda 4.4 ishlatiladi
-    image: mongo:4.4
+    # MongoDB 5.0+ AVX talab qiladi — eski VPS CPU larda faqat 4.4 ishlaydi
+    image: mongo:4.4.29
     container_name: avitus-mongodb
     restart: unless-stopped
-    command: ['--wiredTigerCacheSizeGB', '0.5']
+    command: ['--wiredTigerCacheSizeGB', '0.25']
     environment:
       MONGO_INITDB_DATABASE: avitus-anketa
     volumes:
@@ -12,16 +12,18 @@ services:
     networks:
       - avitus-net
     healthcheck:
-      test: ['CMD-SHELL', "mongo --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)'"]
+      test: ['CMD', 'mongo', '--eval', "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
-      retries: 12
-      start_period: 60s
+      retries: 15
+      start_period: 30s
+    mem_limit: 512m
 
   backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+    image: avitus-anketa-backend:latest
     container_name: avitus-backend
     restart: unless-stopped
     env_file:
@@ -35,9 +37,9 @@ services:
       MONGODB_URI: mongodb://mongodb:27017/avitus-anketa
       ADMIN_DIST_PATH: /app/apps/admin/dist
       UPLOAD_DIR: /app/uploads
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required — .env faylni to'ldiring}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN is required — .env faylni to'ldiring}
       TELEGRAM_PROXY: ${TELEGRAM_PROXY:-}
       TELEGRAM_RETRY_ATTEMPTS: ${TELEGRAM_RETRY_ATTEMPTS:-5}
       TELEGRAM_API_ROOT: ${TELEGRAM_API_ROOT:-}
@@ -50,9 +52,17 @@ services:
     volumes:
       - uploads_data:/app/uploads
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - avitus-net
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://127.0.0.1:3000/api/docs',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    mem_limit: 768m
 
 networks:
   avitus-net:

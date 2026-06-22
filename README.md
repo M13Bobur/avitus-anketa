@@ -89,20 +89,14 @@ npm start              # Backend admin/dist ni ham serve qiladi
 
 ### 4. Docker
 
-Boshqa kompyuterga deploy qilish uchun to'liq qo'llanma: **[DEPLOY-DOCKER.md](./DEPLOY-DOCKER.md)**
+To'liq qo'llanma: **[DEPLOY-DOCKER.md](./DEPLOY-DOCKER.md)**
 
 ```bash
 cp .env.docker.example .env
-# .env ni tahrirlang (JWT_SECRET, TELEGRAM_BOT_TOKEN, CORS_ORIGIN)
-
-chmod +x scripts/docker-deploy.sh
-./scripts/docker-deploy.sh
-```
-
-Yoki qo'lda:
-
-```bash
-docker compose up -d --build
+nano .env                          # TELEGRAM_BOT_TOKEN kiriting
+chmod +x scripts/*.sh
+./scripts/docker-deploy.sh         # build + deploy + tekshiruv
+./scripts/docker-status.sh         # holat
 ```
 
 **URL:** `http://SERVER_IP:3000` — Admin + API + Bot bitta containerda.
