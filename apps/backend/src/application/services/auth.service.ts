@@ -3,9 +3,10 @@ import jwt from 'jsonwebtoken';
 import { config } from '../../config';
 import { adminRepository } from '../../infrastructure/repositories/admin.repository';
 import { UnauthorizedError, NotFoundError, ValidationError, ConflictError } from '../../domain/errors/app.error';
-import { validatePasswordStrength } from '../../domain/security';
+import { validatePasswordStrength, assertSeedPasswordSafe } from '../../domain/security';
 import { AdminRole } from '@avitus/shared-types';
 import { IAdminDocument } from '../../infrastructure/database/models/admin.model';
+import { isProduction } from '../../config';
 
 const JWT_ALGORITHM = 'HS256' as const;
 
@@ -82,6 +83,10 @@ export class AuthService {
   async seedDefaultAdmin(username: string, password: string): Promise<void> {
     const exists = await adminRepository.exists();
     if (exists) return;
+
+    if (isProduction) {
+      assertSeedPasswordSafe(password);
+    }
 
     const passwordHash = await bcrypt.hash(password, 12);
     await adminRepository.create(username, passwordHash, AdminRole.SUPER_ADMIN);

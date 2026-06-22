@@ -35,8 +35,11 @@ export function assertProductionSecurity(): void {
   if (WEAK_JWT_SECRETS.has(config.jwt.secret) || config.jwt.secret.length < 32) {
     throw new Error('Production: JWT_SECRET kamida 32 belgili kuchli kalit bo\'lishi kerak');
   }
+}
 
-  if (WEAK_ADMIN_PASSWORDS.has(config.seed.adminPassword)) {
+export function assertSeedPasswordSafe(password: string): void {
+  if (WEAK_ADMIN_PASSWORDS.has(password)) {
     throw new Error('Production: SEED_ADMIN_PASSWORD zaif — kuchli parol o\'rnating');
   }
+  validatePasswordStrength(password);
 }
