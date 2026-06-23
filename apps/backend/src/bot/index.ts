@@ -26,6 +26,7 @@ import {
   logTelegramConnectionHint,
 } from './telegram-client';
 import { connectAndLaunchBot } from './launch-bot';
+import { notifyAdminsNewApplication } from '../admin-bot/notify-new-application';
 
 type BotContext = Context<Update>;
 
@@ -166,7 +167,7 @@ export function setupBot(bot: Telegraf<BotContext>) {
     if (!isEnumStep(currentStep)) return;
 
     try {
-      const { nextStep, completed } = await surveyService.processAnswer(
+      const { nextStep, completed, applicationId } = await surveyService.processAnswer(
         ctx.from!.id,
         currentStep,
         value,
@@ -179,6 +180,9 @@ export function setupBot(bot: Telegraf<BotContext>) {
 
       if (completed) {
         await safeReply(ctx, COMPLETED_MESSAGE, { parse_mode: 'Markdown' });
+        if (applicationId) {
+          void notifyAdminsNewApplication(applicationId);
+        }
         return;
       }
 
@@ -259,7 +263,7 @@ export function setupBot(bot: Telegraf<BotContext>) {
     }
 
     try {
-      const { nextStep, completed } = await surveyService.processAnswer(
+      const { nextStep, completed, applicationId } = await surveyService.processAnswer(
         ctx.from!.id,
         currentStep,
         ctx.message.text.trim(),
@@ -267,6 +271,9 @@ export function setupBot(bot: Telegraf<BotContext>) {
 
       if (completed) {
         await safeReply(ctx, COMPLETED_MESSAGE, { parse_mode: 'Markdown' });
+        if (applicationId) {
+          void notifyAdminsNewApplication(applicationId);
+        }
         return;
       }
 

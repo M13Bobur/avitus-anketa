@@ -19,6 +19,29 @@ export const UNAUTHORIZED_MESSAGE =
 export const EMPTY_LIST_MESSAGE = '📭 Bu bo\'limda arizalar topilmadi.';
 export const LOADING_MESSAGE = '⏳ Yuklanmoqda...';
 
+export function newApplicationNotification(
+  fullName: string,
+  position: string,
+  submittedAt: string,
+): string {
+  return (
+    '🆕 <b>Yangi ariza keldi!</b>\n\n' +
+    `👤 <b>Ism:</b> ${fullName}\n` +
+    `💼 <b>Lavozim:</b> ${position}\n` +
+    `📅 <b>Vaqt:</b> ${submittedAt}\n\n` +
+    'Batafsil ko\'rish uchun tugmani bosing 👇'
+  );
+}
+
+export function newApplicationKeyboard(appId: string): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [{ text: '📋 Arizani ko\'rish', callback_data: `d:${appId}:n:1` }],
+      [{ text: '🆕 Yangi arizalar', callback_data: 'ln:1' }],
+    ],
+  };
+}
+
 export function mainMenuKeyboard(): InlineKeyboardMarkup {
   return {
     inline_keyboard: [

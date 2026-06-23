@@ -7,6 +7,7 @@ import { migrateApplicationStatuses } from './infrastructure/database/migrate-st
 import { createApp } from './app';
 import { createBot, startBot } from './bot';
 import { createAdminBot, startAdminBot } from './admin-bot';
+import { initAdminBotNotifier } from './admin-bot/notify-new-application';
 import type { Telegraf } from 'telegraf';
 import { authService } from './application/services/auth.service';
 import { assertProductionSecurity } from './domain/security';
@@ -45,7 +46,10 @@ async function bootstrap() {
   const surveyBot = createBot();
   const adminBot = createAdminBot();
   if (surveyBot) runningBots.push(surveyBot);
-  if (adminBot) runningBots.push(adminBot);
+  if (adminBot) {
+    runningBots.push(adminBot);
+    initAdminBotNotifier(adminBot);
+  }
 
   await Promise.all([
     surveyBot ? startBot(surveyBot) : Promise.resolve(),

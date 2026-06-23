@@ -93,7 +93,7 @@ export class SurveyService {
     telegramId: number,
     step: SurveyStep,
     value: unknown,
-  ): Promise<{ nextStep: SurveyStep; completed: boolean }> {
+  ): Promise<{ nextStep: SurveyStep; completed: boolean; applicationId?: string }> {
     const user = await userRepository.findByTelegramId(telegramId);
     if (!user) {
       throw new NotFoundError('User not found');
@@ -127,7 +127,11 @@ export class SurveyService {
       await applicationRepository.complete(user._id.toString());
       await userRepository.updateStep(telegramId, 'completed');
       await userRepository.updateStatus(telegramId, UserStatus.COMPLETED);
-      return { nextStep: 'completed', completed: true };
+      return {
+        nextStep: 'completed',
+        completed: true,
+        applicationId: application._id.toString(),
+      };
     }
 
     await userRepository.updateStep(telegramId, nextStep);

@@ -7,6 +7,7 @@ export interface IAdminRepository {
   findById(id: string): Promise<IAdminDocument | null>;
   findByTelegramId(telegramId: number): Promise<IAdminDocument | null>;
   findAll(): Promise<IAdminDocument[]>;
+  findAllWithTelegramId(): Promise<IAdminDocument[]>;
   create(username: string, passwordHash: string, role: AdminRole): Promise<IAdminDocument>;
   updatePassword(id: string, passwordHash: string): Promise<void>;
   updateUsername(id: string, username: string): Promise<void>;
@@ -30,6 +31,10 @@ export class AdminRepository implements IAdminRepository {
 
   async findAll(): Promise<IAdminDocument[]> {
     return AdminModel.find().sort({ createdAt: 1 });
+  }
+
+  async findAllWithTelegramId(): Promise<IAdminDocument[]> {
+    return AdminModel.find({ telegramId: { $exists: true, $ne: null } }).sort({ createdAt: 1 });
   }
 
   async create(
