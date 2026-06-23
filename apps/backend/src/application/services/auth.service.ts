@@ -156,6 +156,35 @@ export class AuthService {
 
     return { token: this.createToken(updated), admin: updated };
   }
+
+  async authenticateTelegram(
+    password: string,
+    telegramId: number,
+  ): Promise<IAdminDocument> {
+    const existingByTelegram = await adminRepository.findByTelegramId(telegramId);
+    if (existingByTelegram) {
+      return existingByTelegram;
+    }
+
+    const admins = await adminRepository.findAll();
+    for (const admin of admins) {
+      const isValid = await bcrypt.compare(password, admin.passwordHash);
+      if (!isValid) continue;
+
+      await adminRepository.linkTelegramId(admin._id.toString(), telegramId);
+      const updated = await adminRepository.findById(admin._id.toString());
+      if (!updated) {
+        throw new NotFoundError('Admin topilmadi');
+      }
+      return updated;
+    }
+
+    throw new UnauthorizedError('Parol noto\'g\'ri');
+  }
+
+  async getAdminByTelegramId(telegramId: number): Promise<IAdminDocument | null> {
+    return adminRepository.findByTelegramId(telegramId);
+  }
 }
 
 export const authService = new AuthService();

@@ -20,6 +20,7 @@ function loadEnv(): void {
 loadEnv();
 
 const nodeEnv = process.env.NODE_ENV ?? 'development';
+const backendRoot = path.resolve(__dirname, '../..');
 
 function requireEnv(key: string, defaultValue?: string): string {
   const value = process.env[key] ?? defaultValue;
@@ -42,6 +43,7 @@ export const config = {
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
+    adminBotToken: process.env.TELEGRAM_ADMIN_BOT_TOKEN ?? '',
     proxy: process.env.TELEGRAM_PROXY ?? process.env.HTTPS_PROXY ?? '',
     apiRoot: process.env.TELEGRAM_API_ROOT ?? '',
     retryAttempts: parseInt(process.env.TELEGRAM_RETRY_ATTEMPTS ?? '3', 10),
@@ -59,7 +61,7 @@ export const config = {
   upload: {
     dir: process.env.UPLOAD_DIR && path.isAbsolute(process.env.UPLOAD_DIR)
       ? process.env.UPLOAD_DIR
-      : path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? 'apps/backend/uploads'),
+      : path.resolve(backendRoot, process.env.UPLOAD_DIR ?? 'uploads'),
     maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10),
   },
   seed: {

@@ -1,37 +1,57 @@
 import type { Agent } from 'http';
+import https from 'https';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { config } from '../config';
 import { logger } from '../config/logger';
 
+const TELEGRAM_REQUEST_TIMEOUT_MS = 20_000;
+
 export function createTelegramAgent(): Agent | undefined {
   const proxy = config.telegram.proxy;
-  if (!proxy) return undefined;
+  if (!proxy) {
+    return new https.Agent({
+      keepAlive: true,
+      timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+    });
+  }
 
   logger.info(`Telegram proxy enabled: ${proxy.replace(/:[^:@/]+@/, ':***@')}`);
-  return new HttpsProxyAgent(proxy) as unknown as Agent;
+  return new HttpsProxyAgent(proxy, {
+    timeout: TELEGRAM_REQUEST_TIMEOUT_MS,
+  }) as unknown as Agent;
 }
 
-export function getTelegrafOptions() {
+export function getTelegrafOptions(handlerTimeout = 90_000) {
   const agent = createTelegramAgent();
-  const options: {
-    telegram?: {
-      agent?: Agent;
-      apiRoot?: string;
-    };
-  } = {};
+  return {
+    handlerTimeout,
+    telegram: {
+      ...(agent ? { agent, attachmentAgent: agent } : {}),
+      ...(config.telegram.apiRoot ? { apiRoot: config.telegram.apiRoot } : {}),
+    },
+  };
+}
 
-  if (agent) {
-    options.telegram = { agent };
+export async function withOperationTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation(),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
-
-  if (config.telegram.apiRoot) {
-    options.telegram = {
-      ...options.telegram,
-      apiRoot: config.telegram.apiRoot,
-    };
-  }
-
-  return options;
 }
 
 function isRetryableTelegramError(error: unknown): boolean {

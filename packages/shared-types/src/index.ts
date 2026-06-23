@@ -201,6 +201,7 @@ export interface IAdmin {
   _id: string;
   username: string;
   role: AdminRole;
+  telegramId?: number;
   createdAt: string;
   updatedAt: string;
 }

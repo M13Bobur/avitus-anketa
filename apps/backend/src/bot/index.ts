@@ -25,6 +25,7 @@ import {
   withTelegramRetry,
   logTelegramConnectionHint,
 } from './telegram-client';
+import { connectAndLaunchBot } from './launch-bot';
 
 type BotContext = Context<Update>;
 
@@ -306,15 +307,9 @@ export async function startBot(bot: Telegraf<BotContext>) {
   });
 
   try {
-    const me = await withTelegramRetry(() => bot.telegram.getMe(), 'getMe');
-    logger.info(`Telegram bot connected: @${me.username}`);
-    await bot.launch();
-    logger.info('Telegram bot polling started');
+    await connectAndLaunchBot(bot, 'Survey bot');
   } catch (error) {
     logTelegramConnectionHint(error);
     throw error;
   }
-
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
 }

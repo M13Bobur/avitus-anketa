@@ -6,6 +6,7 @@ export interface IAdminDocument extends Document {
   passwordHash: string;
   role: AdminRole;
   tokenVersion: number;
+  telegramId?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +21,7 @@ const adminSchema = new Schema<IAdminDocument>(
       default: AdminRole.ADMIN,
     },
     tokenVersion: { type: Number, default: 0 },
+    telegramId: { type: Number, unique: true, sparse: true, index: true },
   },
   { timestamps: true },
 );

@@ -6,6 +6,8 @@ import { connectDatabase } from './infrastructure/database/connection';
 import { migrateApplicationStatuses } from './infrastructure/database/migrate-status';
 import { createApp } from './app';
 import { createBot, startBot } from './bot';
+import { createAdminBot, startAdminBot } from './admin-bot';
+import type { Telegraf } from 'telegraf';
 import { authService } from './application/services/auth.service';
 import { assertProductionSecurity } from './domain/security';
 
@@ -38,13 +40,21 @@ async function bootstrap() {
     }
   });
 
-  const bot = createBot();
-  if (bot) {
-    await startBot(bot);
-  }
+  const runningBots: Telegraf[] = [];
+
+  const surveyBot = createBot();
+  const adminBot = createAdminBot();
+  if (surveyBot) runningBots.push(surveyBot);
+  if (adminBot) runningBots.push(adminBot);
+
+  await Promise.all([
+    surveyBot ? startBot(surveyBot) : Promise.resolve(),
+    adminBot ? startAdminBot(adminBot) : Promise.resolve(),
+  ]);
 
   const shutdown = async (signal: string) => {
     logger.info(`${signal} received, shutting down...`);
+    await Promise.allSettled(runningBots.map((bot) => bot.stop(signal)));
     server.close(() => {
       logger.info('HTTP server closed');
       process.exit(0);
