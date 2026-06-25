@@ -17,8 +17,7 @@ import {
   shouldSkipStep,
 } from './survey-fsm.service';
 import { surveyValidators } from '../dto/validation.schemas';
-import { ValidationError } from '../../domain/errors/app.error';
-import { NotFoundError } from '../../domain/errors/app.error';
+import { ValidationError, NotFoundError } from '../../domain/errors/app.error';
 import { SURVEY_STEPS_ORDER } from '@avitus/shared-types';
 
 export class SurveyService {
@@ -98,7 +97,6 @@ export class SurveyService {
 
   validateApplicationForSubmit(
     answers: SurveyAnswers,
-    resumeFile?: string,
     photoFile?: string,
   ): void {
     for (const step of SURVEY_STEPS_ORDER) {
@@ -114,10 +112,6 @@ export class SurveyService {
         const message = result.error.errors.map((e) => e.message).join(', ');
         throw new ValidationError(message);
       }
-    }
-
-    if (!resumeFile) {
-      throw new ValidationError('Rezyume faylini yuklash majburiy');
     }
 
     if (!photoFile) {
@@ -148,11 +142,7 @@ export class SurveyService {
     }
 
     if (step === 'confirmation' && validatedValue === Confirmation.CONFIRM) {
-      this.validateApplicationForSubmit(
-        application.answers,
-        application.resumeFile,
-        application.photoFile,
-      );
+      this.validateApplicationForSubmit(application.answers, application.photoFile);
     }
 
     const answerKey = step as keyof SurveyAnswers;
@@ -187,6 +177,20 @@ export class SurveyService {
     if (!user) throw new NotFoundError('User not found');
 
     await applicationRepository.setResumeFile(user._id.toString(), filename);
+
+    const application = await applicationRepository.findByUserId(user._id.toString());
+    const nextStep = getNextStep('resume', (application?.answers ?? {}) as Record<string, unknown>);
+
+    await userRepository.updateStep(telegramId, nextStep);
+    return nextStep;
+  }
+
+  async skipResume(telegramId: number) {
+    const user = await userRepository.findByTelegramId(telegramId);
+    if (!user) throw new NotFoundError('User not found');
+    if (user.currentStep !== 'resume') {
+      throw new ValidationError('Rezyume bosqichida emassiz');
+    }
 
     const application = await applicationRepository.findByUserId(user._id.toString());
     const nextStep = getNextStep('resume', (application?.answers ?? {}) as Record<string, unknown>);
@@ -241,6 +245,15 @@ export class ApplicationService {
   }
 
   async updateStatus(id: string, status: ApplicationStatus, adminComment?: string) {
+    const existing = await applicationRepository.findById(id);
+    if (!existing) throw new NotFoundError('Application not found');
+    if (!existing.completed) {
+      throw new ValidationError('Tugallanmagan anketaning holatini o\'zgartirib bo\'lmaydi');
+    }
+    if (status === ApplicationStatus.INCOMPLETE) {
+      throw new ValidationError('Tugallanmagan holat faqat bot jarayonida belgilanadi');
+    }
+
     const app = await applicationRepository.updateStatus(id, status, adminComment);
     if (!app) throw new NotFoundError('Application not found');
     return this.toDto(app);
@@ -265,6 +278,8 @@ export class ApplicationService {
       username?: string;
       firstName?: string;
       lastName?: string;
+      currentStep?: SurveyStep;
+      status?: UserStatus;
     } | null;
 
     return {
@@ -286,6 +301,8 @@ export class ApplicationService {
             username: user.username,
             firstName: user.firstName,
             lastName: user.lastName,
+            currentStep: user.currentStep ?? 'fullName',
+            status: user.status ?? UserStatus.IN_PROGRESS,
           }
         : undefined,
     };

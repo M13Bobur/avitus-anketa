@@ -14,6 +14,7 @@ const PRINT_STEPS: SurveyStep[] = [
 ];
 
 const STATUS_CLASS: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.INCOMPLETE]: 'print-status print-status-reviewing',
   [ApplicationStatus.NEW]: 'print-status',
   [ApplicationStatus.REVIEWING]: 'print-status print-status-reviewing',
   [ApplicationStatus.INTERVIEW]: 'print-status print-status-interview',

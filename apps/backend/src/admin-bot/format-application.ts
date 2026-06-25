@@ -30,6 +30,7 @@ const ANSWER_STEPS: SurveyStep[] = [
 ];
 
 const STATUS_EMOJI: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.INCOMPLETE]: '⏳',
   [ApplicationStatus.NEW]: '🆕',
   [ApplicationStatus.REVIEWING]: '🔍',
   [ApplicationStatus.INTERVIEW]: '💬',

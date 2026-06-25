@@ -14,6 +14,7 @@ import {
   LayoutList,
   KeyRound,
   User,
+  Clock,
 } from 'lucide-react';
 import { APPLICATIONS_SIDEBAR, APPLICATIONS_ALL_SLUG } from '@avitus/shared-types';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 const statusIcons = {
   barchasi: LayoutList,
+  tugallanmagan: Clock,
   yangi: Inbox,
   'korib-chiqilmoqda': Search,
   suhbat: MessageSquare,

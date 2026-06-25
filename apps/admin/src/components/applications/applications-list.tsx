@@ -8,6 +8,7 @@ import {
   ApplicationStatus,
   Branch,
   Gender,
+  getSurveyProgress,
   IApplication,
   PaginatedResponse,
   PharmacyExperience,
@@ -26,6 +27,23 @@ interface ApplicationsListProps {
   fixedStatus?: ApplicationStatus;
   showAll?: boolean;
   hideStatusFilter?: boolean;
+  showProgress?: boolean;
+}
+
+function getDisplayDate(app: IApplication): string {
+  if (!app.completed) {
+    return formatDate(app.updatedAt);
+  }
+  return formatDate(app.submittedAt);
+}
+
+function getProgressLabel(app: IApplication): string {
+  if (app.completed || !app.user?.currentStep) {
+    return '-';
+  }
+
+  const progress = getSurveyProgress(app.user.currentStep);
+  return `${progress.current}/${progress.total} — ${progress.label}`;
 }
 
 export function ApplicationsList({
@@ -34,6 +52,7 @@ export function ApplicationsList({
   fixedStatus,
   showAll = false,
   hideStatusFilter = Boolean(fixedStatus),
+  showProgress = false,
 }: ApplicationsListProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -243,8 +262,13 @@ export function ApplicationsList({
                   <th className="px-4 py-3 text-left font-medium">Telefon</th>
                   <th className="px-4 py-3 text-left font-medium">Lavozim</th>
                   <th className="px-4 py-3 text-left font-medium">Filial</th>
+                  {(showProgress || showAll) && (
+                    <th className="px-4 py-3 text-left font-medium">Jarayon</th>
+                  )}
                   <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Sana</th>
+                  <th className="px-4 py-3 text-left font-medium">
+                    {fixedStatus === ApplicationStatus.INCOMPLETE ? 'Oxirgi faollik' : 'Sana'}
+                  </th>
                   <th className="px-4 py-3 text-left font-medium">Amallar</th>
                 </tr>
               </thead>
@@ -261,10 +285,15 @@ export function ApplicationsList({
                           : (app.answers.position ?? '-')}
                       </td>
                       <td className="px-4 py-3">{app.answers.branch ?? '-'}</td>
+                      {(showProgress || showAll) && (
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {getProgressLabel(app)}
+                        </td>
+                      )}
                       <td className="px-4 py-3">
                         <Badge variant={statusColors[appStatus]}>{appStatus}</Badge>
                       </td>
-                      <td className="px-4 py-3">{formatDate(app.submittedAt)}</td>
+                      <td className="px-4 py-3">{getDisplayDate(app)}</td>
                       <td className="px-4 py-3">
                         <Link href={`/applications/view/?id=${app._id}`}>
                           <Button variant="ghost" size="sm">
@@ -277,7 +306,10 @@ export function ApplicationsList({
                 })}
                 {data?.data.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={(showProgress || showAll) ? 8 : 7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
                       Arizalar topilmadi
                     </td>
                   </tr>

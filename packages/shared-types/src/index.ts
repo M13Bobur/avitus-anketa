@@ -6,6 +6,7 @@ export enum UserStatus {
 }
 
 export enum ApplicationStatus {
+  INCOMPLETE = 'Tugallanmagan',
   NEW = 'Yangi',
   REVIEWING = "Ko'rib chiqilmoqda",
   INTERVIEW = 'Suhbat',
@@ -16,6 +17,7 @@ export enum ApplicationStatus {
 export const APPLICATIONS_ALL_SLUG = 'barchasi';
 
 export const APPLICATION_STATUS_NAV = [
+  { slug: 'tugallanmagan', status: ApplicationStatus.INCOMPLETE, label: 'Tugallanmagan' },
   { slug: 'yangi', status: ApplicationStatus.NEW, label: 'Yangi tushganlar' },
   { slug: 'korib-chiqilmoqda', status: ApplicationStatus.REVIEWING, label: "Ko'rib chiqilmoqda" },
   { slug: 'suhbat', status: ApplicationStatus.INTERVIEW, label: 'Suhbat' },
@@ -39,6 +41,24 @@ export const LEGACY_APPLICATION_STATUS: Record<string, ApplicationStatus> = {
 
 export function getStatusSlug(status: ApplicationStatus): string {
   return APPLICATION_STATUS_NAV.find((item) => item.status === status)?.slug ?? 'yangi';
+}
+
+export function getSurveyProgress(currentStep: SurveyStep): {
+  current: number;
+  total: number;
+  label: string;
+} {
+  const visibleSteps = SURVEY_STEPS_ORDER.filter(
+    (s) => !['otherPosition', 'fomPrograms', 'convictionNote', 'completed'].includes(s),
+  );
+  const index = visibleSteps.indexOf(currentStep);
+  const current = index >= 0 ? index + 1 : visibleSteps.length;
+
+  return {
+    current,
+    total: visibleSteps.length,
+    label: STEP_LABELS[currentStep] ?? currentStep,
+  };
 }
 
 export enum AdminRole {

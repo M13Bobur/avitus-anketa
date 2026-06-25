@@ -159,9 +159,6 @@ export function setupBot(bot: Telegraf<BotContext>) {
     if (!('data' in ctx.callbackQuery)) return;
 
     const data = ctx.callbackQuery.data;
-    if (!data.startsWith('answer:')) return;
-
-    const value = data.slice('answer:'.length);
     await withTelegramRetry(() => ctx.answerCbQuery(), 'answerCbQuery');
 
     const user = await userRepository.findByTelegramId(ctx.from!.id);
@@ -169,6 +166,28 @@ export function setupBot(bot: Telegraf<BotContext>) {
       await safeReply(ctx, 'Anketa allaqachon tugallangan. /restart bilan qayta boshlang.');
       return;
     }
+
+    if (data.startsWith('skip:')) {
+      const step = data.slice('skip:'.length);
+      if (step === 'resume' && user.currentStep === 'resume') {
+        try {
+          const nextStep = await surveyService.skipResume(ctx.from!.id);
+          await sendStep(ctx, nextStep);
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            await safeReply(ctx, `⚠️ ${error.message}`);
+          } else {
+            logger.error('Skip resume error', error);
+            await safeReply(ctx, 'Xatolik yuz berdi.');
+          }
+        }
+      }
+      return;
+    }
+
+    if (!data.startsWith('answer:')) return;
+
+    const value = data.slice('answer:'.length);
 
     const currentStep = user.currentStep;
     if (!isEnumStep(currentStep)) return;

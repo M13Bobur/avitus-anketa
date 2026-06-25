@@ -24,7 +24,7 @@ const applicationSchema = new Schema<IApplicationDocument>(
     status: {
       type: String,
       enum: Object.values(ApplicationStatus),
-      default: ApplicationStatus.NEW,
+      default: ApplicationStatus.INCOMPLETE,
       index: true,
     },
     adminComment: { type: String },
@@ -38,6 +38,7 @@ applicationSchema.index({ 'answers.branch': 1 });
 applicationSchema.index({ 'answers.gender': 1 });
 applicationSchema.index({ 'answers.pharmacyExperience': 1 });
 applicationSchema.index({ submittedAt: -1 });
+applicationSchema.index({ updatedAt: -1 });
 
 export const ApplicationModel = mongoose.model<IApplicationDocument>(
   'Application',

@@ -4,6 +4,7 @@ export const statusColors: Record<
   ApplicationStatus,
   'default' | 'secondary' | 'success' | 'warning' | 'destructive'
 > = {
+  [ApplicationStatus.INCOMPLETE]: 'warning',
   [ApplicationStatus.NEW]: 'default',
   [ApplicationStatus.REVIEWING]: 'warning',
   [ApplicationStatus.INTERVIEW]: 'secondary',

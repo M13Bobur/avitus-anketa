@@ -51,7 +51,11 @@ export class ApplicationRepository implements IApplicationRepository {
   }
 
   async create(userId: string): Promise<IApplicationDocument> {
-    return ApplicationModel.create({ userId: new Types.ObjectId(userId) });
+    return ApplicationModel.create({
+      userId: new Types.ObjectId(userId),
+      status: ApplicationStatus.INCOMPLETE,
+      completed: false,
+    });
   }
 
   async updateAnswers(
@@ -117,11 +121,19 @@ export class ApplicationRepository implements IApplicationRepository {
     if (filters.pharmacyExperience) {
       query['answers.pharmacyExperience'] = filters.pharmacyExperience;
     }
-    if (filters.status) query.status = buildStatusFilter(filters.status);
+    if (filters.status === ApplicationStatus.INCOMPLETE) {
+      query.completed = false;
+      query.status = ApplicationStatus.INCOMPLETE;
+    } else if (filters.status) {
+      query.status = buildStatusFilter(filters.status);
+      query.completed = true;
+    }
     if (filters.dateFrom || filters.dateTo) {
-      query.submittedAt = {};
-      if (filters.dateFrom) query.submittedAt.$gte = new Date(filters.dateFrom);
-      if (filters.dateTo) query.submittedAt.$lte = new Date(filters.dateTo);
+      const dateField =
+        filters.status === ApplicationStatus.INCOMPLETE ? 'updatedAt' : 'submittedAt';
+      query[dateField] = {};
+      if (filters.dateFrom) query[dateField].$gte = new Date(filters.dateFrom);
+      if (filters.dateTo) query[dateField].$lte = new Date(filters.dateTo);
     }
     if (filters.search) {
       const safeSearch = escapeRegex(filters.search.trim());
@@ -134,7 +146,7 @@ export class ApplicationRepository implements IApplicationRepository {
     const [data, total] = await Promise.all([
       ApplicationModel.find(query)
         .populate('userId')
-        .sort({ submittedAt: -1, createdAt: -1 })
+        .sort({ updatedAt: -1, submittedAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit),
       ApplicationModel.countDocuments(query),

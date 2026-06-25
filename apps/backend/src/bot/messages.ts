@@ -41,11 +41,13 @@ export const STEP_MESSAGES: Record<SurveyStep, string> = {
   convicted: '⚖️ *24/28* Sudlanganmisiz?',
   convictionNote: '⚖️ Sudlanganlik haqida izoh bering:',
   references: '👥 *25/28* Tavsiya bera oladigan 2 nafar shaxsning F.I.Sh. va telefon raqami:',
-  resume: '📎 *26/28* Rezyume yoki diplom sertifikatlarini yuklang (PDF, DOC yoki DOCX):',
+  resume: '📎 *26/28* Rezyume yoki diplom sertifikatlarini yuklang (PDF, DOC yoki DOCX, ixtiyoriy).\n\nFayl yuboring yoki "O\'tkazib yuborish" tugmasini bosing:',
   photo: '📸 *27/28* Fotosuratingizni yuboring (JPG, PNG yoki WEBP):',
   confirmation: '✅ *28/28* Barcha ma\'lumotlarni tekshiring va tasdiqlang:',
   completed: '🎉 Anketa muvaffaqiyatli topshirildi!',
 };
+
+export const SKIP_RESUME_LABEL = "O'tkazib yuborish";
 
 function enumKeyboard(values: string[], columns = 2) {
   const buttons = values.map((v) => Markup.button.callback(v, `answer:${v}`));
@@ -78,6 +80,10 @@ export function getStepKeyboard(step: SurveyStep) {
       return enumKeyboard(Object.values(WorkSchedule), 1);
     case 'confirmation':
       return enumKeyboard(Object.values(Confirmation), 2);
+    case 'resume':
+      return Markup.inlineKeyboard([
+        Markup.button.callback(SKIP_RESUME_LABEL, 'skip:resume'),
+      ]);
     default:
       return undefined;
   }
