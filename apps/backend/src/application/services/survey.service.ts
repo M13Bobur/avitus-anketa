@@ -199,6 +199,20 @@ export class SurveyService {
     return nextStep;
   }
 
+  async skipReferences(telegramId: number) {
+    const user = await userRepository.findByTelegramId(telegramId);
+    if (!user) throw new NotFoundError('User not found');
+    if (user.currentStep !== 'references') {
+      throw new ValidationError('Tavsiyalar bosqichida emassiz');
+    }
+
+    const application = await applicationRepository.findByUserId(user._id.toString());
+    const nextStep = getNextStep('references', (application?.answers ?? {}) as Record<string, unknown>);
+
+    await userRepository.updateStep(telegramId, nextStep);
+    return nextStep;
+  }
+
   async savePhotoFile(telegramId: number, filename: string) {
     const user = await userRepository.findByTelegramId(telegramId);
     if (!user) throw new NotFoundError('User not found');

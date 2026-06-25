@@ -153,10 +153,12 @@ export const surveyValidators: Record<string, z.ZodSchema> = {
     5,
     'Sudlanganlik haqida izoh bering',
   ),
-  references: requiredText('Tavsiya beruvchilarni kiriting', 2000).min(
-    10,
-    '2 nafar shaxsning F.I.Sh. va telefon raqamini kiriting',
-  ),
+  references: z
+    .string()
+    .trim()
+    .max(2000, 'Maksimum 2000 ta belgi kiritish mumkin')
+    .min(10, '2 nafar shaxsning F.I.Sh. va telefon raqamini kiriting')
+    .optional(),
   confirmation: z.nativeEnum(Confirmation, { required_error: 'Tasdiqlashni tanlang' }),
 };
 

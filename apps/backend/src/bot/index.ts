@@ -169,17 +169,23 @@ export function setupBot(bot: Telegraf<BotContext>) {
 
     if (data.startsWith('skip:')) {
       const step = data.slice('skip:'.length);
-      if (step === 'resume' && user.currentStep === 'resume') {
-        try {
+      try {
+        if (step === 'references' && user.currentStep === 'references') {
+          const nextStep = await surveyService.skipReferences(ctx.from!.id);
+          await sendStep(ctx, nextStep);
+          return;
+        }
+        if (step === 'resume' && user.currentStep === 'resume') {
           const nextStep = await surveyService.skipResume(ctx.from!.id);
           await sendStep(ctx, nextStep);
-        } catch (error) {
-          if (error instanceof ValidationError) {
-            await safeReply(ctx, `⚠️ ${error.message}`);
-          } else {
-            logger.error('Skip resume error', error);
-            await safeReply(ctx, 'Xatolik yuz berdi.');
-          }
+          return;
+        }
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          await safeReply(ctx, `⚠️ ${error.message}`);
+        } else {
+          logger.error('Skip step error', error);
+          await safeReply(ctx, 'Xatolik yuz berdi.');
         }
       }
       return;
