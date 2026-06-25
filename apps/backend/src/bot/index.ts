@@ -27,11 +27,14 @@ import {
 } from './telegram-client';
 import { connectAndLaunchBot } from './launch-bot';
 import { notifyAdminsNewApplication } from '../admin-bot/notify-new-application';
+import {
+  extensionForType,
+  validatePhotoContent,
+  validateResumeContent,
+  type DetectedFileType,
+} from '../domain/file-validation';
 
 type BotContext = Context<Update>;
-
-const ALLOWED_RESUME_EXT = new Set(['.pdf', '.doc', '.docx']);
-const ALLOWED_PHOTO_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 function validateUploadSize(bytes: number) {
   const maxBytes = config.upload.maxFileSizeMb * 1024 * 1024;
@@ -40,14 +43,6 @@ function validateUploadSize(bytes: number) {
       `Fayl hajmi ${config.upload.maxFileSizeMb} MB dan oshmasligi kerak`,
     );
   }
-}
-
-function normalizeExtension(ext: string, allowed: Set<string>): string {
-  const lower = ext.toLowerCase();
-  if (!allowed.has(lower)) {
-    throw new ValidationError('Ruxsat etilmagan fayl turi');
-  }
-  return lower;
 }
 
 async function safeReply(
@@ -79,8 +74,9 @@ async function downloadTelegramFile(
   ctx: BotContext,
   fileId: string,
   prefix: string,
-  allowedExt: Set<string>,
+  validateContent: (buffer: Buffer, mimeType?: string) => DetectedFileType,
   fileSize?: number,
+  mimeType?: string,
 ): Promise<string> {
   if (fileSize) {
     validateUploadSize(fileSize);
@@ -98,11 +94,22 @@ async function downloadTelegramFile(
   const buffer = Buffer.from(await response.arrayBuffer());
   validateUploadSize(buffer.length);
 
-  const ext = normalizeExtension(path.extname(fileLink.pathname) || '.bin', allowedExt);
+  const detectedType = validateContent(buffer, mimeType);
+  const ext = extensionForType(detectedType);
   const filename = `${prefix}_${crypto.randomBytes(16).toString('hex')}${ext}`;
   const filePath = path.join(config.upload.dir, filename);
   fs.writeFileSync(filePath, buffer);
   return filename;
+}
+
+async function handleUploadError(ctx: BotContext, error: unknown, fallbackMessage: string) {
+  if (error instanceof ValidationError) {
+    await safeReply(ctx, `⚠️ ${error.message}`);
+    return;
+  }
+
+  logger.error(fallbackMessage, error);
+  await safeReply(ctx, `${fallbackMessage}. Qayta urinib ko'ring.`);
 }
 
 export function setupBot(bot: Telegraf<BotContext>) {
@@ -199,29 +206,65 @@ export function setupBot(bot: Telegraf<BotContext>) {
 
   bot.on('document', async (ctx) => {
     const user = await userRepository.findByTelegramId(ctx.from!.id);
-    if (!user || user.currentStep !== 'resume') return;
+    if (!user || user.status === UserStatus.COMPLETED) return;
 
-    try {
-      const doc = (ctx.message as Message.DocumentMessage).document;
-      const filename = await downloadTelegramFile(
-        ctx,
-        doc.file_id,
-        'resume',
-        ALLOWED_RESUME_EXT,
-        doc.file_size,
-      );
-      const nextStep = await surveyService.saveResumeFile(ctx.from!.id, filename);
-      await safeReply(ctx, '✅ Fayl qabul qilindi!');
-      await sendStep(ctx, nextStep);
-    } catch (error) {
-      logger.error('Document upload error', error);
-      await safeReply(ctx, 'Fayl yuklashda xatolik. Qayta urinib ko\'ring.');
+    const doc = (ctx.message as Message.DocumentMessage).document;
+    const currentStep = user.currentStep;
+
+    if (currentStep === 'resume') {
+      try {
+        const filename = await downloadTelegramFile(
+          ctx,
+          doc.file_id,
+          'resume',
+          validateResumeContent,
+          doc.file_size,
+          doc.mime_type,
+        );
+        const nextStep = await surveyService.saveResumeFile(ctx.from!.id, filename);
+        await safeReply(ctx, '✅ Fayl qabul qilindi!');
+        await sendStep(ctx, nextStep);
+      } catch (error) {
+        await handleUploadError(ctx, error, 'Fayl yuklashda xatolik');
+      }
+      return;
+    }
+
+    if (currentStep === 'photo') {
+      try {
+        const filename = await downloadTelegramFile(
+          ctx,
+          doc.file_id,
+          'photo',
+          validatePhotoContent,
+          doc.file_size,
+          doc.mime_type,
+        );
+        const nextStep = await surveyService.savePhotoFile(ctx.from!.id, filename);
+        await safeReply(ctx, '✅ Fotosurat qabul qilindi!');
+        await sendStep(ctx, nextStep);
+      } catch (error) {
+        await handleUploadError(ctx, error, 'Fotosurat yuklashda xatolik');
+      }
+      return;
     }
   });
 
   bot.on('photo', async (ctx) => {
     const user = await userRepository.findByTelegramId(ctx.from!.id);
-    if (!user || user.currentStep !== 'photo') return;
+    if (!user || user.status === UserStatus.COMPLETED) return;
+
+    const currentStep = user.currentStep;
+
+    if (currentStep === 'resume') {
+      await safeReply(
+        ctx,
+        '⚠️ Rezyume uchun PDF yoki Word (DOC/DOCX) fayl yuboring, rasm emas.',
+      );
+      return;
+    }
+
+    if (currentStep !== 'photo') return;
 
     try {
       const photos = (ctx.message as Message.PhotoMessage).photo;
@@ -230,15 +273,14 @@ export function setupBot(bot: Telegraf<BotContext>) {
         ctx,
         largest.file_id,
         'photo',
-        ALLOWED_PHOTO_EXT,
+        validatePhotoContent,
         largest.file_size,
       );
       const nextStep = await surveyService.savePhotoFile(ctx.from!.id, filename);
       await safeReply(ctx, '✅ Fotosurat qabul qilindi!');
       await sendStep(ctx, nextStep);
     } catch (error) {
-      logger.error('Photo upload error', error);
-      await safeReply(ctx, 'Fotosurat yuklashda xatolik. Qayta urinib ko\'ring.');
+      await handleUploadError(ctx, error, 'Fotosurat yuklashda xatolik');
     }
   });
 

@@ -9,10 +9,17 @@ import {
 } from '@avitus/shared-types';
 import { userRepository } from '../../infrastructure/repositories/user.repository';
 import { applicationRepository } from '../../infrastructure/repositories/application.repository';
-import { getNextStep, getStepNumber, getTotalSteps, getStepLabel } from './survey-fsm.service';
+import {
+  getNextStep,
+  getStepNumber,
+  getTotalSteps,
+  getStepLabel,
+  shouldSkipStep,
+} from './survey-fsm.service';
 import { surveyValidators } from '../dto/validation.schemas';
 import { ValidationError } from '../../domain/errors/app.error';
 import { NotFoundError } from '../../domain/errors/app.error';
+import { SURVEY_STEPS_ORDER } from '@avitus/shared-types';
 
 export class SurveyService {
   async startSurvey(telegramId: number, userData: {
@@ -89,6 +96,35 @@ export class SurveyService {
     return result.data;
   }
 
+  validateApplicationForSubmit(
+    answers: SurveyAnswers,
+    resumeFile?: string,
+    photoFile?: string,
+  ): void {
+    for (const step of SURVEY_STEPS_ORDER) {
+      if (['resume', 'photo', 'confirmation', 'completed'].includes(step)) continue;
+      if (shouldSkipStep(step, answers as Record<string, unknown>)) continue;
+
+      const schema = surveyValidators[step];
+      if (!schema) continue;
+
+      const value = answers[step as keyof SurveyAnswers];
+      const result = schema.safeParse(value);
+      if (!result.success) {
+        const message = result.error.errors.map((e) => e.message).join(', ');
+        throw new ValidationError(message);
+      }
+    }
+
+    if (!resumeFile) {
+      throw new ValidationError('Rezyume faylini yuklash majburiy');
+    }
+
+    if (!photoFile) {
+      throw new ValidationError('Fotosurat yuklash majburiy');
+    }
+  }
+
   async processAnswer(
     telegramId: number,
     step: SurveyStep,
@@ -109,6 +145,14 @@ export class SurveyService {
     if (step === 'confirmation' && validatedValue === Confirmation.REJECT) {
       await userRepository.updateStatus(telegramId, UserStatus.CANCELLED);
       return { nextStep: 'completed', completed: false };
+    }
+
+    if (step === 'confirmation' && validatedValue === Confirmation.CONFIRM) {
+      this.validateApplicationForSubmit(
+        application.answers,
+        application.resumeFile,
+        application.photoFile,
+      );
     }
 
     const answerKey = step as keyof SurveyAnswers;

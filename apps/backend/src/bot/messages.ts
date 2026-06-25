@@ -41,8 +41,8 @@ export const STEP_MESSAGES: Record<SurveyStep, string> = {
   convicted: '⚖️ *24/28* Sudlanganmisiz?',
   convictionNote: '⚖️ Sudlanganlik haqida izoh bering:',
   references: '👥 *25/28* Tavsiya bera oladigan 2 nafar shaxsning F.I.Sh. va telefon raqami:',
-  resume: '📎 *26/28* Rezyume yoki diplom sertifikatlarini yuklang (PDF, DOC, rasm):',
-  photo: '📸 *27/28* Fotosuratingizni yuboring:',
+  resume: '📎 *26/28* Rezyume yoki diplom sertifikatlarini yuklang (PDF, DOC yoki DOCX):',
+  photo: '📸 *27/28* Fotosuratingizni yuboring (JPG, PNG yoki WEBP):',
   confirmation: '✅ *28/28* Barcha ma\'lumotlarni tekshiring va tasdiqlang:',
   completed: '🎉 Anketa muvaffaqiyatli topshirildi!',
 };

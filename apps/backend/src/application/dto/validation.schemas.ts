@@ -65,45 +65,99 @@ export const applicationFiltersSchema = z.object({
 });
 
 const phoneRegex = /^(\+998|998)?[0-9]{9,12}$/;
+const birthDateRegex = /^\d{1,2}[./-]\d{1,2}[./-]\d{4}$/;
+
+const requiredText = (message: string, max: number) =>
+  z
+    .string({ required_error: message, invalid_type_error: message })
+    .trim()
+    .min(1, message)
+    .max(max, `Maksimum ${max} ta belgi kiritish mumkin`);
 
 export const surveyValidators: Record<string, z.ZodSchema> = {
-  fullName: z
-    .string()
-    .min(5, "Familiya, ism va otasining ismi kamida 5 ta belgidan iborat bo'lishi kerak")
-    .max(200),
+  fullName: requiredText("Familiya, ism va otasining ismini kiriting", 200).min(
+    5,
+    "Familiya, ism va otasining ismi kamida 5 ta belgidan iborat bo'lishi kerak",
+  ),
   birthDate: z
-    .string()
-    .min(4, "Tug'ilgan sanani kiriting (masalan: 01.01.1990)")
-    .max(20),
-  gender: z.nativeEnum(Gender),
+    .string({ required_error: "Tug'ilgan sanani kiriting" })
+    .trim()
+    .min(1, "Tug'ilgan sanani kiriting")
+    .regex(birthDateRegex, "Sana formati noto'g'ri. Masalan: 01.01.1990"),
+  gender: z.nativeEnum(Gender, { required_error: 'Jinsni tanlang' }),
   phone: z
-    .string()
-    .regex(phoneRegex, "Telefon raqam noto'g'ri formatda. Masalan: +998901234567"),
-  address: z.string().min(5, 'Manzil kamida 5 ta belgidan iborat bo\'lishi kerak').max(500),
-  position: z.nativeEnum(Position),
-  otherPosition: z.string().min(2, 'Lavozim nomini kiriting').max(200),
-  education: z.nativeEnum(Education),
-  educationInstitution: z.string().min(2).max(300),
-  specialty: z.string().min(2).max(200),
-  pharmacyExperience: z.nativeEnum(PharmacyExperience),
-  lastWorkplace: z.string().min(2).max(300),
-  lastPosition: z.string().min(2).max(200),
-  dismissalReason: z.string().min(2).max(500),
-  branch: z.nativeEnum(Branch),
-  computerSkills: z.nativeEnum(ComputerSkill),
-  fomExperience: z.nativeEnum(YesNo),
-  fomPrograms: z.string().min(2, 'Dasturlar ro\'yxatini kiriting').max(500),
-  workSchedule: z.nativeEnum(WorkSchedule),
-  businessTrips: z.nativeEnum(YesNo),
-  expectedSalary: z.string().min(1).max(100),
-  availableFrom: z.string().min(2).max(100),
-  whyUs: z.string().min(10, 'Kamida 10 ta belgi kiriting').max(2000),
-  strengths: z.string().min(10).max(2000),
-  improvements: z.string().min(10).max(2000),
-  convicted: z.nativeEnum(YesNo),
-  convictionNote: z.string().min(5).max(1000),
-  references: z.string().min(10, '2 nafar shaxsning F.I.Sh. va telefon raqamini kiriting').max(2000),
-  confirmation: z.nativeEnum(Confirmation),
+    .string({ required_error: 'Telefon raqamini kiriting' })
+    .trim()
+    .min(1, 'Telefon raqamini kiriting')
+    .transform((value) => value.replace(/[\s()-]/g, ''))
+    .pipe(
+      z.string().regex(phoneRegex, "Telefon raqam noto'g'ri formatda. Masalan: +998901234567"),
+    ),
+  address: requiredText('Doimiy yashash manzilini kiriting', 500).min(
+    5,
+    'Manzil kamida 5 ta belgidan iborat bo\'lishi kerak',
+  ),
+  position: z.nativeEnum(Position, { required_error: 'Lavozimni tanlang' }),
+  otherPosition: requiredText('Lavozim nomini kiriting', 200).min(
+    2,
+    'Lavozim nomini kiriting',
+  ),
+  education: z.nativeEnum(Education, { required_error: "Ma'lumotni tanlang" }),
+  educationInstitution: requiredText("Ta'lim muassasasi nomini kiriting", 300).min(
+    2,
+    "Ta'lim muassasasi nomini kiriting",
+  ),
+  specialty: requiredText('Mutaxassisligingizni kiriting', 200).min(
+    2,
+    'Mutaxassisligingizni kiriting',
+  ),
+  pharmacyExperience: z.nativeEnum(PharmacyExperience, {
+    required_error: 'Farmatsevtika tajribasini tanlang',
+  }),
+  lastWorkplace: requiredText('Oxirgi ish joyingizni kiriting', 300).min(
+    2,
+    'Oxirgi ish joyingizni kiriting',
+  ),
+  lastPosition: requiredText('Oxirgi lavozimingizni kiriting', 200).min(
+    2,
+    'Oxirgi lavozimingizni kiriting',
+  ),
+  dismissalReason: requiredText('Ishdan bo\'shash sababini kiriting', 500).min(
+    2,
+    'Ishdan bo\'shash sababini kiriting',
+  ),
+  branch: z.nativeEnum(Branch, { required_error: 'Filialni tanlang' }),
+  computerSkills: z.nativeEnum(ComputerSkill, {
+    required_error: 'Kompyuter bilim darajasini tanlang',
+  }),
+  fomExperience: z.nativeEnum(YesNo, { required_error: 'Javobni tanlang' }),
+  fomPrograms: requiredText('Dasturlar ro\'yxatini kiriting', 500).min(
+    2,
+    'Dasturlar ro\'yxatini kiriting',
+  ),
+  workSchedule: z.nativeEnum(WorkSchedule, { required_error: 'Ish grafigini tanlang' }),
+  businessTrips: z.nativeEnum(YesNo, { required_error: 'Javobni tanlang' }),
+  expectedSalary: requiredText('Kutilayotgan maoshni kiriting', 100),
+  availableFrom: requiredText('Ish boshlash vaqtini kiriting', 100).min(
+    2,
+    'Ish boshlash vaqtini kiriting',
+  ),
+  whyUs: requiredText('Javobni kiriting', 2000).min(10, 'Kamida 10 ta belgi kiriting'),
+  strengths: requiredText('Kuchli tomonlaringizni kiriting', 2000).min(
+    10,
+    'Kamida 10 ta belgi kiriting',
+  ),
+  improvements: requiredText('Javobni kiriting', 2000).min(10, 'Kamida 10 ta belgi kiriting'),
+  convicted: z.nativeEnum(YesNo, { required_error: 'Javobni tanlang' }),
+  convictionNote: requiredText('Sudlanganlik haqida izoh bering', 1000).min(
+    5,
+    'Sudlanganlik haqida izoh bering',
+  ),
+  references: requiredText('Tavsiya beruvchilarni kiriting', 2000).min(
+    10,
+    '2 nafar shaxsning F.I.Sh. va telefon raqamini kiriting',
+  ),
+  confirmation: z.nativeEnum(Confirmation, { required_error: 'Tasdiqlashni tanlang' }),
 };
 
 export type LoginDto = z.infer<typeof loginSchema>;
